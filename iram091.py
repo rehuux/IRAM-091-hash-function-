@@ -66,9 +66,7 @@ def _add(*args):
         result = (result + a) & MASK32
     return result
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SECTION 4: NONLINEAR FUNCTIONS
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 def IRAM_F1(x, y, z):
     """
@@ -107,9 +105,7 @@ def IRAM_F4(x, y, z):
     """
     return ((x ^ y ^ z) | (_rotr(x, 5) & _rotl(z, 9))) & MASK32
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SECTION 5: CUSTOM SIGMA FUNCTIONS (message schedule)
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 def _sigma0(x):
     """
@@ -140,22 +136,6 @@ def _SIGMA1(x):
     """
     return (_rotr(x, 5) ^ _rotl(x, 15) ^ _rotr(x, 29)) & MASK32
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SECTION 6: PADDING
-# ─────────────────────────────────────────────────────────────────────────────
-# IRAM-091 Padding Protocol:
-#
-# 1. Append marker byte: 0xAB  (instead of SHA-256's 0x80)
-#    Binary: 10101011 — alternating pattern aids avalanche at block boundaries
-#
-# 2. Append 0x00 bytes until (message_len ≡ 56 mod 64)
-#    i.e., leave 8 bytes at end of block for length encoding
-#
-# 3. Append the original message bit-length as a BIG-ENDIAN 64-bit integer
-#
-# Example: "hello" = 5 bytes = 40 bits
-#   Padded: 68 65 6c 6c 6f  AB  00 00 ... 00  [48 zeros]  00 00 00 00 00 00 00 28
-#           ^-- "hello" --^  ^marker^   ^pad^             ^--- 40 in 8 bytes ---^
 
 def _pad(message: bytes) -> bytes:
     """Apply IRAM-091 padding to produce a byte string whose length is a multiple of 64."""
@@ -170,19 +150,6 @@ def _pad(message: bytes) -> bytes:
     assert len(padded) % 64 == 0, "Padding error"
     return bytes(padded)
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SECTION 7: MESSAGE SCHEDULE (EXPANSION)
-# ─────────────────────────────────────────────────────────────────────────────
-# Expand 16 initial 32-bit words (from one 512-bit block) into 91 words.
-#
-# For i in 0..15:      W[i] = direct parse from block
-# For i in 16..90:
-#   W[i] = Σ1(W[i-2]) + W[i-7] + Σ0(W[i-15]) + W[i-16] + ROTR(W[i-5], 9)
-#                                                           ^-- extra mixing term
-#   All additions are mod 2^32.
-#
-# The extra term W[i-5] rotated by 9 extends the mixing window beyond SHA-256's
-# 4-word window, creating stronger inter-word dependencies.
 
 def _expand_schedule(block: bytes) -> list:
     """Expand a 64-byte block into 91 schedule words."""
@@ -195,30 +162,6 @@ def _expand_schedule(block: bytes) -> list:
         w = _add(s1, W[i - 7], s0, W[i - 16], extra)
         W.append(w)
     return W
-
-# ─────────────────────────────────────────────────────────────────────────────
-# SECTION 8: COMPRESSION FUNCTION
-# ─────────────────────────────────────────────────────────────────────────────
-# Process one 512-bit block through 91 rounds.
-#
-# Each round i (0 ≤ i < 91):
-#
-#   T1 = H + SIGMA1(E) + IRAM_F2(E, F, G) + K[i] + W[i]
-#   T2 = SIGMA0(A) + IRAM_F1(A, B, C)
-#   T3 = IRAM_F3(B, D, F) XOR IRAM_F4(A, C, E)   ← extra mixing term
-#
-#   New state:
-#     H ← G
-#     G ← F
-#     F ← E
-#     E ← D + T1                             (inject T1 into middle)
-#     D ← C
-#     C ← B
-#     B ← A
-#     A ← T1 + T2 + T3                       (new front with all three temps)
-#
-# The T3 term interleaves all 8 registers through F3/F4, creating cross-lane
-# diffusion absent in standard Merkle-Damgård designs.
 
 def _compress(state: list, block: bytes) -> list:
     """Compress one 512-bit block into the current state (8 x 32-bit registers)."""
@@ -251,9 +194,7 @@ def _compress(state: list, block: bytes) -> list:
         _add(H, state[7]),
     ]
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SECTION 9: MAIN HASH FUNCTION
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 def iram091(data: bytes) -> str:
     """
@@ -286,9 +227,6 @@ def iram091_str(text: str, encoding: str = 'utf-8') -> str:
     return iram091(text.encode(encoding))
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SECTION 10: TEST VECTORS & AVALANCHE DEMO
-# ─────────────────────────────────────────────────────────────────────────────
 
 def _hamming_distance_hex(h1: str, h2: str) -> int:
     """Count differing bits between two hex digests."""
