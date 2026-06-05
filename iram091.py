@@ -1,7 +1,7 @@
 """
-IRAM-091 — Experimental Cryptographic Hash Function
+IRAM-091  Experimental Cryptographic Hash Function
 Version: 1.0
-Creator: Rehu
+Creator: Syed Rehan
 Date: 2026
 
 DISCLAIMER: IRAM-091 is an EDUCATIONAL / EXPERIMENTAL hash function.
