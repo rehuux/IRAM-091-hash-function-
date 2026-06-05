@@ -1,4 +1,4 @@
-# IRAM-091 — Experimental Cryptographic Hash Function
+# IRAM-091 Experimental Cryptographic Hash Function
 
 **Developer:** Syed Rehan
 
