@@ -4,33 +4,13 @@ Version: 1.0
 Creator: Rehu
 Date: 2026
 
-⚠ DISCLAIMER: IRAM-091 is an EDUCATIONAL / EXPERIMENTAL hash function.
+DISCLAIMER: IRAM-091 is an EDUCATIONAL / EXPERIMENTAL hash function.
 It has NOT been publicly reviewed or cryptanalyzed.
 It must NOT be used for security-critical applications.
 """
 
 import struct
 import math
-
-# ─────────────────────────────────────────────────────────────────────────────
-# SECTION 1: INITIALIZATION VECTORS
-# ─────────────────────────────────────────────────────────────────────────────
-# Generation method:
-#   Take the n-th irrational/transcendental constant's decimal expansion,
-#   scale by 2^32, take the fractional part, and convert to a 32-bit hex word.
-#
-#   Constants used (in order):
-#     e      = 2.71828182845904523536...
-#     φ (phi)= 1.61803398874989484820...
-#     √3     = 1.73205080756887729352...
-#     √5     = 2.23606797749978969640...
-#     ln(2)  = 0.69314718055994530941...
-#     π²/6   = 1.64493406684822643647...  (Basel problem answer)
-#     ³√2    = 1.25992104989487316476...
-#     γ (Euler–Mascheroni) = 0.57721566490153286060...
-#
-#   Formula: IV_i = floor(frac(C_i) * 2**32)
-#   where frac() is the fractional part.
 
 def _frac32(x):
     """Extract fractional part and return as 32-bit unsigned integer."""
@@ -56,19 +36,6 @@ IRAM_IV = [
     _frac32(_gamma),   # H: 0x93E4A6B0  (approx)
 ]
 
-# Print actual computed IVs
-# for i, iv in enumerate(IRAM_IV):
-#     print(f"IV[{i}] = {iv:08x}")
-
-# ─────────────────────────────────────────────────────────────────────────────
-# SECTION 2: ROUND CONSTANTS
-# ─────────────────────────────────────────────────────────────────────────────
-# Generation method:
-#   Use the first 91 prime numbers.
-#   For prime p_i, constant K_i = floor(frac(p_i^(1/3)) * 2^32)
-#   i.e., cube root of each prime, fractional part, scaled to 32 bits.
-#   (SHA-256 uses square roots; we use cube roots instead.)
-
 def _sieve(n):
     """Return first n prime numbers."""
     primes = []
@@ -81,10 +48,6 @@ def _sieve(n):
 
 _PRIMES_91 = _sieve(91)
 IRAM_K = [_frac32(p ** (1/3)) for p in _PRIMES_91]
-
-# ─────────────────────────────────────────────────────────────────────────────
-# SECTION 3: UTILITY FUNCTIONS
-# ─────────────────────────────────────────────────────────────────────────────
 
 MASK32 = 0xFFFFFFFF
 
